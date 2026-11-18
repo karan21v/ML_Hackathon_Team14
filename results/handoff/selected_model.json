@@ -1,0 +1,24 @@
+{
+  "name": "random_forest",
+  "selected_by": "group CV candidate macro F1",
+  "cv_macro_f1": 0.8858432107070074,
+  "experiment_id": "9d8a825b40d7ae61",
+  "source_csv": "/Users/karan/ML_Hackathon_Team14/data/handoff/candidate_features_handoff.csv",
+  "feature_names": [
+    "distance_m",
+    "heading_difference",
+    "speed_mps",
+    "time_gap_s",
+    "segment_length_m",
+    "candidate_rank",
+    "projection_fraction",
+    "heading_reliable"
+  ],
+  "dataset_statistics": {
+    "full_rows": 677510,
+    "full_observations": 135502,
+    "full_trips": 80,
+    "training_rows": 677510,
+    "training_observations": 135502
+  }
+}

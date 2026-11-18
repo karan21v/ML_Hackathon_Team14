@@ -1,0 +1,19 @@
+{
+  "features": [
+    "distance_m",
+    "heading_difference",
+    "speed_mps",
+    "time_gap_s",
+    "segment_length_m",
+    "candidate_rank",
+    "projection_fraction",
+    "heading_reliable"
+  ],
+  "metadata": [
+    "trip_id",
+    "observation_index",
+    "arc_id"
+  ],
+  "target": "label",
+  "missing_values": "replace +/-infinity with NaN; median imputation learned inside training-fold pipeline"
+}

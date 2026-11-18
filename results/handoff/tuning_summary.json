@@ -1,0 +1,24 @@
+{
+  "base_model": "random_forest",
+  "experiment_id": "9d8a825b40d7ae61",
+  "trials_complete": 20,
+  "base_cv_macro_f1": 0.8858432107070074,
+  "best_tuning_cv_macro_f1": 0.8850624670198881,
+  "best_parameters": {
+    "n_estimators": 116,
+    "max_depth": 17,
+    "min_samples_leaf": 3,
+    "max_features": 0.8673861156282748
+  },
+  "feature_names": [
+    "distance_m",
+    "heading_difference",
+    "speed_mps",
+    "time_gap_s",
+    "segment_length_m",
+    "candidate_rank",
+    "projection_fraction",
+    "heading_reliable"
+  ],
+  "source_csv": "/Users/karan/ML_Hackathon_Team14/data/handoff/candidate_features_handoff.csv"
+}

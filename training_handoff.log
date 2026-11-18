@@ -1,0 +1,31 @@
+[MISSING] Feature null/nonfinite counts: {'heading_difference': 90580, 'speed_mps': 295, 'time_gap_s': 295}
+[SCHEMA] Validated full CSV: 677,510 rows, 135,502 observations, 80 trips
+[SCHEMA] Feature order: ['distance_m', 'heading_difference', 'speed_mps', 'time_gap_s', 'segment_length_m', 'candidate_rank', 'projection_fraction', 'heading_reliable']
+[SAMPLE] Training with 40,000 candidate rows from 80 trips
+[LABELS] Positive=8,000; Negative=32,000
+[EXPERIMENT] db175762c092e692 | folds=2
+[logistic_regression] fold=1/2 macroF1=0.8434 top1=0.8315
+[logistic_regression] fold=2/2 macroF1=0.8342 top1=0.8105
+[SAVED] logistic_regression -> artifacts/handoff/logistic_regression_db175762c092e692.joblib
+[decision_tree] fold=1/2 macroF1=0.8560 top1=0.8225
+[decision_tree] fold=2/2 macroF1=0.8441 top1=0.8025
+[SAVED] decision_tree -> artifacts/handoff/decision_tree_db175762c092e692.joblib
+[random_forest] fold=1/2 macroF1=0.8922 top1=0.8385
+[random_forest] fold=2/2 macroF1=0.8828 top1=0.8220
+[SAVED] random_forest -> artifacts/handoff/random_forest_db175762c092e692.joblib
+[mlp] fold=1/2 macroF1=0.8823 top1=0.8377
+[mlp] fold=2/2 macroF1=0.8776 top1=0.8167
+[SAVED] mlp -> artifacts/handoff/mlp_db175762c092e692.joblib
+[hist_gradient_boosting] fold=1/2 macroF1=0.8926 top1=0.8430
+[hist_gradient_boosting] fold=2/2 macroF1=0.8821 top1=0.8227
+[SAVED] hist_gradient_boosting -> artifacts/handoff/hist_gradient_boosting_db175762c092e692.joblib
+
+=== FIVE-MODEL COMPARISON ===
+                 model  cv_macro_f1  cv_top1_accuracy  cv_log_loss
+         random_forest     0.887533          0.830250     0.191890
+hist_gradient_boosting     0.887325          0.832875     0.170992
+                   mlp     0.879936          0.827250     0.185543
+         decision_tree     0.850061          0.812500     0.472503
+   logistic_regression     0.838811          0.821000     0.280958
+[BEST] random_forest by grouped CV Macro F1=0.8875
+[ARTIFACT] artifacts/handoff/best_model.joblib
