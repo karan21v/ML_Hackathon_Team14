@@ -1,0 +1,10 @@
+{
+  "model": "mlp",
+  "cv_macro_f1": 0.8799363320510707,
+  "cv_top1_accuracy": 0.82725,
+  "cv_log_loss": 0.18554338232008077,
+  "cv_seconds": 4.124719999999797,
+  "final_train_seconds": 5.347340699998313,
+  "model_path": "artifacts\\handoff\\mlp_53885198887533ce.joblib",
+  "experiment_id": "53885198887533ce"
+}

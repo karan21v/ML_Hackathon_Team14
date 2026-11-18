@@ -1,9 +1,9 @@
 {
-  "name": "random_forest",
+  "name": "hist_gradient_boosting",
   "selected_by": "group CV candidate macro F1",
-  "cv_macro_f1": 0.8858432107070074,
-  "experiment_id": "9d8a825b40d7ae61",
-  "source_csv": "/Users/karan/ML_Hackathon_Team14/data/handoff/candidate_features_handoff.csv",
+  "cv_macro_f1": 0.887324916418496,
+  "experiment_id": "53885198887533ce",
+  "source_csv": "C:\\Users\\admin\\.gemini\\antigravity\\scratch\\teammate_repo\\results\\candidate_features_handoff.csv",
   "feature_names": [
     "distance_m",
     "heading_difference",
@@ -18,7 +18,7 @@
     "full_rows": 677510,
     "full_observations": 135502,
     "full_trips": 80,
-    "training_rows": 677510,
-    "training_observations": 135502
+    "training_rows": 40000,
+    "training_observations": 8000
   }
 }

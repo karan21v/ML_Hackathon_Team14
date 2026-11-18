@@ -1,0 +1,10 @@
+{
+  "model": "random_forest",
+  "cv_macro_f1": 0.8868652004856727,
+  "cv_top1_accuracy": 0.8303750000000001,
+  "cv_log_loss": 0.1932105068685916,
+  "cv_seconds": 1.5575077000030433,
+  "final_train_seconds": 1.3646189999999478,
+  "model_path": "artifacts\\handoff\\random_forest_53885198887533ce.joblib",
+  "experiment_id": "53885198887533ce"
+}

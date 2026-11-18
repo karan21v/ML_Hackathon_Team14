@@ -1,0 +1,10 @@
+{
+  "model": "logistic_regression",
+  "cv_macro_f1": 0.8388109168047775,
+  "cv_top1_accuracy": 0.821,
+  "cv_log_loss": 0.2809546532359867,
+  "cv_seconds": 0.37301019999722484,
+  "final_train_seconds": 0.12053919999743812,
+  "model_path": "artifacts\\handoff\\logistic_regression_53885198887533ce.joblib",
+  "experiment_id": "53885198887533ce"
+}

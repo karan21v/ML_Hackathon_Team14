@@ -1,0 +1,10 @@
+{
+  "model": "hist_gradient_boosting",
+  "cv_macro_f1": 0.887324916418496,
+  "cv_top1_accuracy": 0.832875,
+  "cv_log_loss": 0.17099167066224652,
+  "cv_seconds": 1.343877800001792,
+  "final_train_seconds": 0.6121997999980522,
+  "model_path": "artifacts\\handoff\\hist_gradient_boosting_53885198887533ce.joblib",
+  "experiment_id": "53885198887533ce"
+}

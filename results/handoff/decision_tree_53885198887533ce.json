@@ -1,0 +1,10 @@
+{
+  "model": "decision_tree",
+  "cv_macro_f1": 0.849962526031635,
+  "cv_top1_accuracy": 0.8125,
+  "cv_log_loss": 0.47251920487236343,
+  "cv_seconds": 0.6297741000016686,
+  "final_train_seconds": 0.3811679999998887,
+  "model_path": "artifacts\\handoff\\decision_tree_53885198887533ce.joblib",
+  "experiment_id": "53885198887533ce"
+}

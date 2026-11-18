@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PathSnap - Evaluator Interface (Laptop 2)</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --primary: #1565C0;
+      --primary-dark: #0D47A1;
+      --accent: #FF9800;
+      --success: #2E7D32;
+      --danger: #C62828;
+      --bg: #F4F6F9;
+      --surface: #FFFFFF;
+      --text: #212121;
+      --text-muted: #607D8B;
+      --border: #CFD8DC;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand i {
+      font-size: 24px;
+      color: var(--primary);
+    }
+    .brand h1 {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--primary-dark);
+      letter-spacing: -0.3px;
+    }
+    .brand span {
+      background: #E3F2FD;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      margin-left: 6px;
+    }
+    .server-status {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .status-online { background: #E8F5E9; color: var(--success); }
+    .status-offline { background: #FFEBEE; color: var(--danger); }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .api-config {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .api-config input {
+      padding: 5px 10px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 12px;
+      width: 220px;
+    }
+
+    /* Main Layout */
+    .main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 65px);
+      overflow: hidden;
+    }
+    /* Sidebar */
+    .sidebar {
+      width: 380px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      padding: 20px;
+      gap: 20px;
+    }
+    .section-card {
+      background: #FAFAFA;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #37474F;
+    }
+    select, button {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-family: inherit;
+    }
+    select {
+      border: 1px solid var(--border);
+      background: white;
+      outline: none;
+    }
+    select:focus { border-color: var(--primary); }
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .slider-container input[type=range] {
+      flex: 1;
+    }
+    .slider-val {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      width: 45px;
+      text-align: right;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary {
+      background: white;
+      color: var(--primary);
+      border: 1px solid var(--primary);
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-secondary:hover { background: #E3F2FD; }
+
+    /* Metrics Grid */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .metric-box {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+      text-align: center;
+    }
+    .metric-val {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary-dark);
+    }
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: #ECEFF1;
+      position: relative;
+    }
+    .map-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .map-placeholder {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .map-placeholder i {
+      font-size: 48px;
+      margin-bottom: 12px;
+      color: #90A4AE;
+    }
+    /* Route Edge Tags */
+    .edge-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-height: 80px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+    .edge-tag {
+      background: #E3F2FD;
+      color: var(--primary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-route"></i>
+      <div>
+        <h1>PathSnap Evaluator Dashboard</h1>
+      </div>
+      <span>Laptop 2 UI</span>
+    </div>
+    <div class="server-status">
+      <div class="api-config">
+        <label for="apiUrl" style="font-size:12px; font-weight:600;">Laptop 1 API:</label>
+        <input type="text" id="apiUrl" value="" placeholder="http://192.168.x.x:8000">
+        <button id="btnCheckConn" style="width:auto; padding:5px 10px; font-size:12px;" onclick="checkConnection()">
+          <i class="fa-solid fa-arrows-rotate"></i> Ping
+        </button>
+      </div>
+      <div id="statusBadge" class="status-badge status-offline">
+        <div class="status-dot"></div>
+        <span id="statusText">Checking...</span>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Sidebar Controls -->
+    <aside class="sidebar">
+      
+      <!-- Trip Selector -->
+      <div class="section-card">
+        <div class="section-title"><i class="fa-solid fa-list-check"></i> 1. Select Evaluator Trip</div>
+        <div class="form-group">
+          <label for="tripSelect">Evaluation Trip:</label>
+          <select id="tripSelect" onchange="loadTripDetails()">
+            <option value="">-- Choose Test Trajectory --</option>
+          </select>
+        </div>
+        <p id="tripDesc" style="font-size:12px; color:var(--text-muted); line-height:1.4;">
+          Select a test trip to inspect GPS coordinates and verify candidate road snapping.
+        </p>
+      </div>
+
+      <!-- HMM Hyperparameters (Evaluation Marks Section) -->
+      <div class="section-card">
+        <div class="section-title"><i class="fa-solid fa-sliders"></i> 2. HMM Hyperparameters (Tuning)</div>
+        
+        <div class="form-group">
+          <label>GPS Noise Std Dev (&sigma;<sub>z</sub>):</label>
+          <div class="slider-container">
+            <input type="range" id="sigmaZ" min="4" max="30" step="1" value="10" oninput="updateSliderVal('sigmaZ', 'sigmaZVal', 'm')">
+            <span id="sigmaZVal" class="slider-val">10 m</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Transition Route Penalty (&beta;):</label>
+          <div class="slider-container">
+            <input type="range" id="betaVal" min="5" max="35" step="1" value="12" oninput="updateSliderVal('betaVal', 'betaDisplayVal', 'm')">
+            <span id="betaDisplayVal" class="slider-val">12 m</span>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btnMatch" onclick="runMatching()">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Run Map Matching (Viterbi)
+        </button>
+      </div>
+
+      <!-- Live Evaluation Metrics -->
+      <div class="section-card">
+        <div class="section-title"><i class="fa-solid fa-chart-line"></i> 3. Live Evaluation Metrics</div>
+        
+        <div class="metrics-grid">
+          <div class="metric-box">
+            <div class="metric-val" id="metricAcc" style="color:var(--success);">--</div>
+            <div class="metric-label">Road Accuracy</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="metricLatency">--</div>
+            <div class="metric-label">Inference Latency</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="metricRmse">--</div>
+            <div class="metric-label">Snapping Offset</div>
+          </div>
+          <div class="metric-box">
+            <div class="metric-val" id="metricPoints">--</div>
+            <div class="metric-label">Trajectory Points</div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <label style="font-size:11px; font-weight:700; color:#37474F;">Snapped Road Sequence:</label>
+          <div class="edge-tags" id="edgeSeqContainer">
+            <span style="font-size:11px; color:#90A4AE;">Run matching to extract route...</span>
+          </div>
+        </div>
+
+        <button class="btn-secondary" id="btnDownload" onclick="downloadJSON()" style="display:none;">
+          <i class="fa-solid fa-download"></i> Export Evaluator JSON
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- Map Visualization Container -->
+    <main class="content-area" id="mapContainer">
+      <div class="map-placeholder" id="placeholder">
+        <i class="fa-solid fa-map-location-dot"></i>
+        <h3>Interactive Folium Map</h3>
+        <p style="font-size:13px; margin-top:6px;">Select a trip and click "Run Map Matching" to visualize the snapped road trajectory.</p>
+      </div>
+      <iframe id="mapIframe" class="map-frame" style="display:none;"></iframe>
+    </main>
+  </div>
+
+  <script>
+    // Initialize API host: auto-detect if loaded directly from Laptop 1 or default to current host
+    const defaultHost = window.location.origin.includes('http') ? window.location.origin : 'http://localhost:8000';
+    const apiInput = document.getElementById('apiUrl');
+    apiInput.value = defaultHost;
+
+    let currentTripData = null;
+    let currentMatchResults = null;
+
+    function getBaseUrl() {
+      return apiInput.value.replace(/\/$/, "");
+    }
+
+    function updateSliderVal(sliderId, labelId, unit) {
+      document.getElementById(labelId).innerText = document.getElementById(sliderId).value + " " + unit;
+    }
+
+    async function checkConnection() {
+      const statusBadge = document.getElementById('statusBadge');
+      const statusText = document.getElementById('statusText');
+      statusBadge.className = "status-badge status-offline";
+      statusText.innerText = "Connecting...";
+
+      try {
+        const res = await fetch(`${getBaseUrl()}/health`, { method: 'GET' });
+        if (res.ok) {
+          const data = await res.json();
+          statusBadge.className = "status-badge status-online";
+          statusText.innerText = "Laptop 1 Connected";
+          loadTrips();
+        } else {
+          statusBadge.className = "status-badge status-offline";
+          statusText.innerText = "HTTP Error " + res.status;
+        }
+      } catch (err) {
+        statusBadge.className = "status-badge status-offline";
+        statusText.innerText = "Unreachable (Check Wi-Fi/IP)";
+      }
+    }
+
+    async function loadTrips() {
+      try {
+        const res = await fetch(`${getBaseUrl()}/api/trips`);
+        if (!res.ok) return;
+        const trips = await res.json();
+        const select = document.getElementById('tripSelect');
+        select.innerHTML = '<option value="">-- Choose Test Trajectory --</option>';
+        trips.forEach(t => {
+          const opt = document.createElement('option');
+          opt.value = t.trip_id;
+          opt.textContent = `${t.trip_id} (${t.num_points} pts, σ=${t.noise_sigma_m}m)`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error("Failed to load trips", e);
+      }
+    }
+
+    async function loadTripDetails() {
+      const tripId = document.getElementById('tripSelect').value;
+      if (!tripId) return;
+
+      try {
+        const res = await fetch(`${getBaseUrl()}/api/trips/${tripId}`);
+        if (!res.ok) return;
+        currentTripData = await res.json();
+        document.getElementById('tripDesc').innerText = currentTripData.description || "Loaded trajectory";
+      } catch (e) {
+        console.error("Failed to load trip details", e);
+      }
+    }
+
+    async function runMatching() {
+      if (!currentTripData || !currentTripData.points) {
+        alert("Please choose a test trip first!");
+        return;
+      }
+
+      const btn = document.getElementById('btnMatch');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Snapping with Viterbi...';
+
+      const sigmaZ = parseFloat(document.getElementById('sigmaZ').value);
+      const beta = parseFloat(document.getElementById('betaVal').value);
+
+      const payload = {
+        trip_id: currentTripData.trip_id,
+        points: currentTripData.points,
+        sigma_z: sigmaZ,
+        beta: beta
+      };
+
+      try {
+        // 1. Fetch Prediction Match
+        const matchRes = await fetch(`${getBaseUrl()}/api/match`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        currentMatchResults = await matchRes.json();
+
+        // 2. Update Metrics
+        document.getElementById('metricAcc').innerText = currentMatchResults.accuracy !== null ? (currentMatchResults.accuracy * 100).toFixed(1) + "%" : "N/A";
+        document.getElementById('metricLatency').innerText = currentMatchResults.latency_ms + " ms";
+        document.getElementById('metricRmse').innerText = currentMatchResults.avg_snapping_distance_m + " m";
+        document.getElementById('metricPoints').innerText = currentMatchResults.num_points;
+
+        // Render edge tags
+        const seqContainer = document.getElementById('edgeSeqContainer');
+        seqContainer.innerHTML = '';
+        currentMatchResults.matched_edges_sequence.forEach(edge => {
+          const tag = document.createElement('span');
+          tag.className = 'edge-tag';
+          tag.innerText = edge;
+          seqContainer.appendChild(tag);
+        });
+
+        document.getElementById('btnDownload').style.display = 'block';
+
+        // 3. Fetch and Render Folium Map
+        const mapRes = await fetch(`${getBaseUrl()}/api/render-map`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const mapHtml = await mapRes.text();
+
+        document.getElementById('placeholder').style.display = 'none';
+        const iframe = document.getElementById('mapIframe');
+        iframe.style.display = 'block';
+        iframe.srcdoc = mapHtml;
+
+      } catch (err) {
+        alert("Error running map matching: " + err);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Run Map Matching (Viterbi)';
+      }
+    }
+
+    function downloadJSON() {
+      if (!currentMatchResults) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentMatchResults, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `${currentMatchResults.trip_id}_prediction.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // Auto-ping on load
+    window.onload = checkConnection;
+  </script>
+</body>
+</html>
