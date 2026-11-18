@@ -1,0 +1,3 @@
+partition,trips,gps_observations,invalid_gps,non_increasing_timestamps,gaps_over_2_seconds,suspicious_speed_gt_55mps,road_arcs,road_nodes
+student_test,10,19160,0,0,138,4,185041,90689
+train,80,208417,0,0,2937,981,3876904,1933485

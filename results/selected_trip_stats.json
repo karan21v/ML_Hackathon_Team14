@@ -1,0 +1,13 @@
+{
+  "partition": "train",
+  "trip_id": "00000001",
+  "gps_observations": 1315,
+  "valid_gps_observations": 1315,
+  "nodes": 88809,
+  "road_arcs": 165790,
+  "invalid_arcs": 0,
+  "reference_route_entries": 525,
+  "invalid_reference_ids": 0,
+  "nearby_road_arcs_in_bounding_box": 152407,
+  "note": "Reference .route IDs are an ordered arc sequence; NOT one label per GPS point."
+}
