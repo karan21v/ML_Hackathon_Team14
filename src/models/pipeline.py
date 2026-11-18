@@ -19,7 +19,9 @@ class MapMatchingPipeline:
         self.search_radius_m = search_radius_m
         self.ml_model = None
         
-        if ml_model_path and os.path.exists(ml_model_path):
+        if ml_model_path:
+            if not os.path.isfile(ml_model_path):
+                raise FileNotFoundError(f"Configured ML model not found: {ml_model_path}")
             self.load_teammate_model(ml_model_path)
             
         self.candidate_matcher = RoadCandidateMatcher(
@@ -33,15 +35,33 @@ class MapMatchingPipeline:
             beta=self.beta
         )
 
+    @property
+    def scoring_engine(self):
+        return "ML_MODEL" if self.ml_model is not None else "GEOMETRIC_BASELINE"
+
+    @property
+    def model_name(self):
+        if isinstance(self.ml_model, dict):
+            return self.ml_model.get("model_name", "unknown")
+        return "geometric_baseline" if self.ml_model is None else type(self.ml_model).__name__
+
     def load_teammate_model(self, model_path):
-        """Load teammate's trained model (scikit-learn, XGBoost, or pickle/joblib)."""
-        try:
-            self.ml_model = joblib.load(model_path)
-            print(f"[Pipeline] Successfully loaded teammate model from {model_path}")
-            if hasattr(self, 'candidate_matcher'):
-                self.candidate_matcher.ml_model = self.ml_model
-        except Exception as e:
-            print(f"[Pipeline Warning] Could not load teammate model ({e}). Using robust baseline candidate scorer.")
+        """Load a model once; fail rather than claiming silent ML inference."""
+        bundle = joblib.load(model_path)
+        if isinstance(bundle, dict):
+            expected = ["distance_m", "heading_difference", "speed_mps",
+                        "time_gap_s", "segment_length_m", "candidate_rank",
+                        "projection_fraction", "heading_reliable"]
+            if bundle.get("feature_names") != expected:
+                raise ValueError(f"Model feature schema mismatch: {bundle.get('feature_names')}")
+            if not hasattr(bundle.get("model"), "predict_proba"):
+                raise ValueError("Model bundle does not expose predict_proba")
+        elif not hasattr(bundle, "predict_proba"):
+            raise ValueError("Model must expose predict_proba")
+        self.ml_model = bundle
+        if hasattr(self, "candidate_matcher"):
+            self.candidate_matcher.ml_model = bundle
+        print(f"[Pipeline] Loaded {self.model_name} from {model_path}")
 
     def match_trip(self, points, evaluate=True):
         """
@@ -52,16 +72,37 @@ class MapMatchingPipeline:
 
         # Step 1: Candidate Generation
         candidates_per_step = []
+        previous = None
         for pt in points:
-            lat = pt.get("raw_latitude", pt.get("lat"))
-            lon = pt.get("raw_longitude", pt.get("lon"))
-            heading = pt.get("heading_deg", pt.get("heading"))
-            speed = pt.get("speed_mps", pt.get("speed"))
-            
+            lat = float(pt.get("raw_latitude", pt.get("lat")))
+            lon = float(pt.get("raw_longitude", pt.get("lon")))
+            ts = pt.get("timestamp")
+            heading = None
+            speed = None
+            dt = None
+            reliable = False
+            if previous is not None and ts is not None and previous.get("timestamp") is not None:
+                dt = float(ts) - float(previous["timestamp"])
+                if dt > 0:
+                    old_lat = float(previous.get("raw_latitude", previous.get("lat")))
+                    old_lon = float(previous.get("raw_longitude", previous.get("lon")))
+                    displacement = haversine_distance(old_lat, old_lon, lat, lon)
+                    speed = displacement/dt
+                    # Mirrors training's movement>=5m, 0<dt<=10s definition.
+                    reliable = bool(displacement >= 5.0 and dt <= 10.0)
+                    if reliable:
+                        import math
+                        dy = lat - old_lat
+                        dx = (lon - old_lon) * math.cos(math.radians(lat))
+                        heading = (math.degrees(math.atan2(dx, dy)) + 360) % 360
+                else:
+                    dt = None
             cands = self.candidate_matcher.get_candidates(
-                lat=lat, lon=lon, heading=heading, speed_mps=speed, max_candidates=5
+                lat=lat, lon=lon, heading=heading, speed_mps=speed,
+                time_gap_s=dt, heading_reliable=reliable, max_candidates=5
             )
             candidates_per_step.append(cands)
+            previous = pt
 
         # Step 2: HMM Viterbi Global Optimization
         matched_sequence = self.hmm_matcher.viterbi_decode(points, candidates_per_step)
@@ -73,6 +114,8 @@ class MapMatchingPipeline:
         correct_count = 0
         total_eval_points = 0
         total_snapping_error_m = 0.0
+        ml_only_correct = 0
+        ml_only_evaluated = 0
 
         for t, (pt, matched) in enumerate(zip(points, matched_sequence)):
             raw_lat = pt.get("raw_latitude", pt.get("lat"))
@@ -98,6 +141,11 @@ class MapMatchingPipeline:
 
             # If ground truth is available
             if "true_edge_id" in pt and pt["true_edge_id"] is not None:
+                if candidates_per_step[t]:
+                    direct = max(candidates_per_step[t], key=lambda c: c["ml_candidate_score"])["edge_id"]
+                    true_for_direct = str(pt["true_edge_id"])
+                    ml_only_correct += int(direct == true_for_direct or direct.replace("_rev", "") == true_for_direct.replace("_rev", ""))
+                    ml_only_evaluated += 1
                 true_edge = str(pt["true_edge_id"])
                 point_result["true_edge_id"] = true_edge
                 # For reverse edge matching or base edge matching
@@ -123,6 +171,9 @@ class MapMatchingPipeline:
             "num_points": len(points),
             "latency_ms": round(elapsed_ms, 2),
             "accuracy": accuracy,
+            "ml_only_accuracy": round(ml_only_correct / ml_only_evaluated, 4) if ml_only_evaluated else None,
+            "scoring_engine": self.scoring_engine,
+            "model_name": self.model_name,
             "avg_snapping_distance_m": avg_snapping_dist,
             "matched_edges_sequence": route_sequence,
             "snapped_points": results

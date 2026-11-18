@@ -99,7 +99,8 @@ class RoadCandidateMatcher:
                 "max_lon": max(u_lon, v_lon),
             })
 
-    def get_candidates(self, lat, lon, heading=None, speed_mps=None, max_candidates=5):
+    def get_candidates(self, lat, lon, heading=None, speed_mps=None,
+                       time_gap_s=None, heading_reliable=False, max_candidates=5):
         """
         Find candidate road segments for a GPS point, compute projection and candidate probability.
         """
@@ -138,6 +139,9 @@ class RoadCandidateMatcher:
         # Sort initial candidate pool by distance to assign candidate_rank
         candidates_raw.sort(key=lambda x: x["dist"])
 
+        # Keep the same five nearest candidates used at model training time.
+        candidates_raw = candidates_raw[:max_candidates]
+        feature_rows = []
         for rank_idx, cand in enumerate(candidates_raw):
             dist = cand["dist"]
             proj_lat, proj_lon = cand["proj_lat"], cand["proj_lon"]
@@ -159,38 +163,43 @@ class RoadCandidateMatcher:
                 "speed_limit_kmh": edge["speed_limit_kmh"],
             }
 
-            # If teammate trained ML model is provided, extract exact 8-feature vector:
-            # ['distance_m', 'heading_difference', 'speed_mps', 'time_gap_s',
-            #  'segment_length_m', 'candidate_rank', 'projection_fraction', 'heading_reliable']
-            if self.ml_model is not None:
-                try:
-                    clf = self.ml_model["model"] if isinstance(self.ml_model, dict) and "model" in self.ml_model else self.ml_model
-                    sp = speed_mps if speed_mps is not None else 10.0
-                    heading_rel = 1.0 if (speed_mps is not None and speed_mps > 2.0) else 0.0
-                    feat_vector = np.array([[
-                        float(dist),
-                        float(heading_diff),
-                        float(sp),
-                        2.0,  # time_gap_s nominal
-                        float(edge["length_meters"]),
-                        float(rank_idx + 1),
-                        float(frac),
-                        float(heading_rel)
-                    ]], dtype=np.float32)
-
-                    score = float(clf.predict_proba(feat_vector)[0][1])
-                except Exception:
-                    # Fallback probabilistic scoring
-                    dist_score = math.exp(-0.5 * (dist / 15.0)**2)
-                    heading_score = max(0.1, (math.cos(math.radians(heading_diff)) + 1.0) / 2.0)
-                    score = dist_score * (0.7 + 0.3 * heading_score)
-            else:
-                dist_score = math.exp(-0.5 * (dist / 15.0)**2)
-                heading_score = max(0.1, (math.cos(math.radians(heading_diff)) + 1.0) / 2.0)
-                score = dist_score * (0.7 + 0.3 * heading_score)
-
-            features["ml_candidate_score"] = float(score)
+            # Reproduce the original eight training features. Missing measurements
+            # remain NaN for the bundled imputer rather than invented constants.
+            sp = float(speed_mps) if speed_mps is not None else np.nan
+            dt = float(time_gap_s) if time_gap_s is not None else np.nan
+            reliable = int(bool(heading_reliable) and heading is not None)
+            heading_feature = float(heading_diff) if reliable else np.nan
+            feature_rows.append([
+                float(dist), heading_feature, sp, dt,
+                float(edge["length_meters"]), float(rank_idx+1),
+                float(frac), reliable
+            ])
             candidates.append(features)
+
+        if not candidates:
+            return []
+        if self.ml_model is not None:
+            clf = (self.ml_model["model"] if isinstance(self.ml_model, dict)
+                   and "model" in self.ml_model else self.ml_model)
+            try:
+                probabilities = np.asarray(
+                    clf.predict_proba(np.asarray(feature_rows, dtype=np.float32))
+                )[:, 1]
+                if len(probabilities) != len(candidates) or not np.isfinite(probabilities).all():
+                    raise ValueError("Invalid model probability output")
+            except Exception as exc:
+                # Fail visibly: hiding this error would make the UI report ML
+                # performance while actually using a distance-only baseline.
+                raise RuntimeError(f"Random Forest inference failed: {exc}") from exc
+        else:
+            probabilities = np.asarray([
+                math.exp(-0.5 * (c["dist_to_segment_m"] / 15.0)**2)
+                * (0.7 + 0.3 * max(0.1, (math.cos(math.radians(c["heading_diff_deg"])) + 1.0)/2.0))
+                for c in candidates
+            ], dtype=float)
+
+        for features, score in zip(candidates, probabilities):
+            features["ml_candidate_score"] = float(score)
 
         # Sort by candidate score descending
         candidates.sort(key=lambda x: x["ml_candidate_score"], reverse=True)

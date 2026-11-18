@@ -43,6 +43,9 @@ class MatchTripResponse(BaseModel):
     num_points: int
     latency_ms: float
     accuracy: Optional[float] = None
+    ml_only_accuracy: Optional[float] = None
+    scoring_engine: str = "GEOMETRIC_BASELINE"
+    model_name: str = "geometric_baseline"
     avg_snapping_distance_m: float
     matched_edges_sequence: List[str]
     snapped_points: List[SnappedPoint]
@@ -59,4 +62,8 @@ class HealthResponse(BaseModel):
     server_time: str
     model_version: str
     active_engine: str
+    scoring_engine: str = "GEOMETRIC_BASELINE"
+    model_loaded: bool = False
+    model_name: str = "geometric_baseline"
+    data_source: str = "synthetic_demo_trips"
     loaded_edges: int
