@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 
 import folium
+from branca.element import Element
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -65,7 +66,8 @@ def _valid_geometry(ds: PathSnapDataset, partition: str, trip: str):
     return xy, geometry, reference_segments, valid_segment, len(route), int((~good_ids).sum())
 
 
-def make_visualizations(ds: PathSnapDataset, partition: str, trip: str, out: Path) -> dict:
+def make_visualizations(ds: PathSnapDataset, partition: str, trip: str, out: Path,
+                        tiles: str = "offline") -> dict:
     track = preprocess_track(ds.read(partition, trip, "track"))
     track.insert(0, "trip_id", trip)
     track.to_csv(out / "cleaned_selected_trip.csv", index=False)
@@ -102,9 +104,13 @@ def make_visualizations(ds: PathSnapDataset, partition: str, trip: str, out: Pat
     fig.savefig(out / "trajectory_plot.png", dpi=160)
     plt.close(fig)
 
-    fmap = folium.Map(location=[float(np.median(gps[:,1])), float(np.median(gps[:,0]))],
-                      zoom_start=13, control_scale=True)
-    roads_layer = folium.FeatureGroup(name="Nearby road network (sampled)", show=False)
+    # Default: NO web map tiles. OpenStreetMap blocked this browser with HTTP 403.
+    # Folium still renders our own GPS and road-network overlays on a plain canvas.
+    tile_name = "CartoDB positron" if tiles == "cartodb" else None
+    fmap = folium.Map(location=[float(np.median(gps[:, 1])), float(np.median(gps[:, 0]))],
+                      zoom_start=13, tiles=tile_name, control_scale=True,
+                      prefer_canvas=True)
+    roads_layer = folium.FeatureGroup(name="Nearby road network (sampled)", show=True)
     # bounded count keeps HTML reasonably sized even for huge networks
     for seg in sampled_roads[:1200]:
         folium.PolyLine([(float(y), float(x)) for x, y in seg],
@@ -121,7 +127,19 @@ def make_visualizations(ds: PathSnapDataset, partition: str, trip: str, out: Pat
                             color="#236cbe", fill=True, fill_opacity=.75,
                             weight=1).add_to(gps_layer)
     gps_layer.add_to(fmap)
-    folium.LayerControl().add_to(fmap)
+    folium.LayerControl(collapsed=False).add_to(fmap)
+    # Simple legend makes the demo readable even with the offline blank background.
+    legend = """
+    <div style="position:fixed; bottom:25px; left:25px; z-index:9999;
+      background:white; border:2px solid #666; border-radius:7px;
+      padding:10px 14px; font:13px Arial,sans-serif; box-shadow:0 2px 8px #aaa;">
+      <strong>PathSnap — GPS Map Matching</strong><br>
+      <span style="color:#236cbe">●</span> Observed GPS points<br>
+      <span style="color:#158653">━</span> Reference route<br>
+      <span style="color:#7f8c99">━</span> Nearby road segments
+    </div>
+    """
+    fmap.get_root().html.add_child(Element(legend))
     folium.FitBounds([[float(bbox[0,1]), float(bbox[0,0])],
                       [float(bbox[1,1]), float(bbox[1,0])]]).add_to(fmap)
     fmap.save(str(out / "trajectory_map.html"))
@@ -147,6 +165,8 @@ def main() -> None:
     parser.add_argument("--partition", choices=PARTITIONS, default="train")
     parser.add_argument("--trip", default="00000001")
     parser.add_argument("--out", default="results")
+    parser.add_argument("--tiles", choices=("offline", "cartodb"), default="offline",
+                        help="offline = no web tiles (avoids HTTP 403); cartodb = online base map")
     args = parser.parse_args()
     output = Path(args.out)
     output.mkdir(parents=True, exist_ok=True)
@@ -163,7 +183,7 @@ def main() -> None:
                         road_arcs=("arcs_rows", "sum"),
                         road_nodes=("nodes_rows", "sum")))
         summary.to_csv(output / "dataset_summary.csv", index=False)
-        stats = make_visualizations(ds, args.partition, args.trip, output)
+        stats = make_visualizations(ds, args.partition, args.trip, output, tiles=args.tiles)
     print("Dataset summary (computed from supplied files):")
     print(summary.to_string(index=False))
     print("\nSelected trip:")
