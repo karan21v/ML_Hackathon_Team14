@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import socket
+import re
 from datetime import datetime
 from typing import List, Optional
 
@@ -22,6 +23,7 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
 sys.path.insert(0, BASE_DIR)
 
 from src.models.pipeline import MapMatchingPipeline
+from src.api.real_trips import create_real_router
 from src.evaluation.map_visualizer import TrajectoryMapVisualizer
 from src.api.schemas import (
     GPSPoint, SnappedPoint, MatchTripRequest,
@@ -56,18 +58,33 @@ if os.path.exists(ROAD_EDGES_PATH):
 else:
     edges_df = pd.DataFrame()
 
-# Check for teammate trained model weights
-teammate_model_path = os.path.join(BASE_DIR, "src", "models", "teammate_model.joblib")
-if not os.path.exists(teammate_model_path):
-    teammate_model_path = os.path.join(BASE_DIR, "src", "models", "model.joblib")
-
+# Load the *real* training handoff when provided. Baseline mode is visibly
+# distinguished in /health and in the evaluator dashboard.
+configured_model_path = os.environ.get("PATHSNAP_MODEL_PATH")
+model_paths = ([configured_model_path] if configured_model_path else [
+    os.path.join(BASE_DIR, "artifacts", "handoff", "deploy_model.joblib"),
+    os.path.join(BASE_DIR, "artifacts", "handoff", "best_model.joblib"),
+    os.path.join(BASE_DIR, "src", "models", "teammate_model.joblib"),
+    os.path.join(BASE_DIR, "src", "models", "model.joblib"),
+])
+if configured_model_path and not os.path.isfile(configured_model_path):
+    raise RuntimeError(f"PATHSNAP_MODEL_PATH does not exist: {configured_model_path}")
+selected_model_path = next((p for p in model_paths if p and os.path.isfile(p)), None)
+if not selected_model_path and os.environ.get("PATHSNAP_REQUIRE_ML") == "1":
+    raise RuntimeError("PATHSNAP_REQUIRE_ML=1 but trained model not found. Set PATHSNAP_MODEL_PATH.")
+if not selected_model_path:
+    print("[WARNING] No trained ML model found. Running clearly labelled GEOMETRIC BASELINE mode.")
 pipeline = MapMatchingPipeline(
     edges_df=edges_df,
     sigma_z=10.0,
     beta=12.0,
-    ml_model_path=teammate_model_path if os.path.exists(teammate_model_path) else None
+    ml_model_path=selected_model_path,
 )
 visualizer = TrajectoryMapVisualizer(edges_df=edges_df)
+
+# Real student-test trips are served from an explicitly configured ZIP.
+# Their distinct road graphs must NEVER be mixed with synthetic demo edges.
+app.include_router(create_real_router(lambda: pipeline.ml_model))
 
 def get_local_ip_addresses():
     """Detect local IP addresses for two-laptop connectivity safely without DNS timeouts."""
@@ -94,7 +111,11 @@ def health():
         "status": "ONLINE",
         "server_time": datetime.now().isoformat(),
         "model_version": "PathSnap-HMM-Viterbi-v1.0",
-        "active_engine": "ML-Candidate-Ranker + Viterbi-HMM",
+        "active_engine": pipeline.scoring_engine + " + Viterbi-HMM",
+        "scoring_engine": pipeline.scoring_engine,
+        "model_loaded": pipeline.ml_model is not None,
+        "model_name": pipeline.model_name,
+        "data_source": "synthetic_demo_trips" + (" + real_test_zip" if os.getenv("PATHSNAP_TRIPS_ZIP") else ""),
         "loaded_edges": len(edges_df)
     }
 
@@ -140,7 +161,9 @@ def list_trips():
 
 @app.get("/api/trips/{trip_id}", tags=["Trips"])
 def get_trip(trip_id: str):
-    """Retrieve full details and raw GPS points for a specific trip."""
+    """Retrieve synthetic demonstration trip data (not reserved evaluator trips)."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{1,64}", trip_id):
+        raise HTTPException(status_code=400, detail="Invalid trip ID")
     fpath = os.path.join(RAW_TRIPS_DIR, f"{trip_id}.json")
     if not os.path.exists(fpath):
         raise HTTPException(status_code=404, detail=f"Trip {trip_id} not found")
@@ -160,21 +183,59 @@ def match_trajectory(payload: MatchTripRequest):
     raw_pts_dict = [p.dict() for p in payload.points]
     
     # Configure custom HMM parameters if supplied
-    pipeline.sigma_z = payload.sigma_z or 10.0
-    pipeline.beta = payload.beta or 12.0
+    pipeline.sigma_z = payload.sigma_z if payload.sigma_z is not None else 10.0
+    pipeline.beta = payload.beta if payload.beta is not None else 12.0
     pipeline.hmm_matcher.sigma_z = pipeline.sigma_z
     pipeline.hmm_matcher.beta = pipeline.beta
 
-    result = pipeline.match_trip(raw_pts_dict)
+    try:
+        result = pipeline.match_trip(raw_pts_dict)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Map matching failed: {exc}") from exc
 
     return {
         "trip_id": payload.trip_id or "SUBMITTED_TRIP",
         "num_points": result["num_points"],
         "latency_ms": result["latency_ms"],
         "accuracy": result["accuracy"],
+        "ml_only_accuracy": result["ml_only_accuracy"],
+        "scoring_engine": result["scoring_engine"],
+        "model_name": result["model_name"],
         "avg_snapping_distance_m": result["avg_snapping_distance_m"],
         "matched_edges_sequence": result["matched_edges_sequence"],
         "snapped_points": result["snapped_points"]
+    }
+
+@app.post("/api/match-with-map", tags=["Map Matching"])
+def match_with_map(payload: MatchTripRequest):
+    """One prediction and one map: avoids inconsistent latency/metrics."""
+    if not payload.points:
+        raise HTTPException(status_code=400, detail="Empty points list provided")
+    if payload.sigma_z is not None and payload.sigma_z <= 0:
+        raise HTTPException(status_code=422, detail="sigma_z must be positive")
+    if payload.beta is not None and payload.beta <= 0:
+        raise HTTPException(status_code=422, detail="beta must be positive")
+    pipeline.hmm_matcher.sigma_z = payload.sigma_z if payload.sigma_z is not None else 10.0
+    pipeline.hmm_matcher.beta = payload.beta if payload.beta is not None else 12.0
+    raw = [p.model_dump() for p in payload.points]
+    try:
+        result = pipeline.match_trip(raw)
+        gt = []
+        for p in raw:
+            edge_id = p.get("true_edge_id")
+            if edge_id is not None and (not gt or gt[-1] != edge_id):
+                gt.append(edge_id)
+        fmap = visualizer.create_folium_map(
+            trip_id=payload.trip_id or "DEMO_TRIP",
+            raw_points=raw,
+            matched_results=result,
+            ground_truth_edges=gt or None,
+        )
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Map matching failed: {exc}") from exc
+    return {
+        "prediction": {"trip_id": payload.trip_id or "CUSTOM_TRIP", **result},
+        "map_html": fmap.get_root().render(),
     }
 
 @app.post("/api/render-map", tags=["Visualization"])

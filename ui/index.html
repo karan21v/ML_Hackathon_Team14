@@ -301,6 +301,7 @@
             <option value="">-- Choose Test Trajectory --</option>
           </select>
         </div>
+        <p style="font-size:11px;color:#8a4b07;margin-bottom:7px;font-weight:600;">Synthetic demonstration trips — not evaluator-test results</p>
         <p id="tripDesc" style="font-size:12px; color:var(--text-muted); line-height:1.4;">
           Select a test trip to inspect GPS coordinates and verify candidate road snapping.
         </p>
@@ -338,7 +339,7 @@
         <div class="metrics-grid">
           <div class="metric-box">
             <div class="metric-val" id="metricAcc" style="color:var(--success);">--</div>
-            <div class="metric-label">Road Accuracy</div>
+            <div class="metric-label">HMM accuracy (when labels supplied)</div>
           </div>
           <div class="metric-box">
             <div class="metric-val" id="metricLatency">--</div>
@@ -346,7 +347,7 @@
           </div>
           <div class="metric-box">
             <div class="metric-val" id="metricRmse">--</div>
-            <div class="metric-label">Snapping Offset</div>
+            <div class="metric-label">Mean GPS-to-snap offset</div>
           </div>
           <div class="metric-box">
             <div class="metric-val" id="metricPoints">--</div>
@@ -354,6 +355,8 @@
           </div>
         </div>
 
+        <p id="modeSummary" style="font-size:12px;color:var(--text-muted);margin-top:10px;line-height:1.45;">Inference engine: waiting for API</p>
+        <p id="mlCompare" style="font-size:12px;color:var(--text-muted);margin-top:6px;">Classifier-only vs HMM: run an example</p>
         <div style="margin-top:14px;">
           <label style="font-size:11px; font-weight:700; color:#37474F;">Snapped Road Sequence:</label>
           <div class="edge-tags" id="edgeSeqContainer">
@@ -408,6 +411,14 @@
           const data = await res.json();
           statusBadge.className = "status-badge status-online";
           statusText.innerText = "Laptop 1 Connected";
+          document.getElementById('modeSummary').innerText =
+            `Inference engine: ${data.model_name || 'unknown'} (${data.scoring_engine || 'unknown'})`;
+          if (!data.model_loaded) {
+            document.getElementById('modeSummary').innerText += ' — NO TRAINED MODEL LOADED';
+            document.getElementById('modeSummary').style.color = '#b45309';
+          } else {
+            document.getElementById('modeSummary').style.color = '#2e7d32';
+          }
           loadTrips();
         } else {
           statusBadge.className = "status-badge status-offline";
@@ -429,9 +440,28 @@
         trips.forEach(t => {
           const opt = document.createElement('option');
           opt.value = t.trip_id;
-          opt.textContent = `${t.trip_id} (${t.num_points} pts, σ=${t.noise_sigma_m}m)`;
+          opt.textContent = `${t.trip_id} (${t.num_points} pts, synthetic)`;
           select.appendChild(opt);
         });
+        // Real test trips are optional, configured on the server via a ZIP.
+        // Importantly, these use their OWN per-trip road networks.
+        try {
+          const realResponse = await fetch(`${getBaseUrl()}/api/real/trips`);
+          if (realResponse.ok) {
+            const realTrips = await realResponse.json();
+            if (realTrips.length) {
+              const group = document.createElement('optgroup');
+              group.label = 'Real dataset (no ground truth used)';
+              realTrips.forEach(t => {
+                const option = document.createElement('option');
+                option.value = t.trip_id;
+                option.textContent = `${t.trip_id} (${t.num_points} GPS points, real)`;
+                group.appendChild(option);
+              });
+              select.appendChild(group);
+            }
+          }
+        } catch(e) { console.log('Real-trip mode not configured:', e); }
       } catch (e) {
         console.error("Failed to load trips", e);
       }
@@ -439,11 +469,21 @@
 
     async function loadTripDetails() {
       const tripId = document.getElementById('tripSelect').value;
+      currentTripData = null;
+      currentMatchResults = null;
+      document.getElementById('btnDownload').style.display = 'none';
+      document.getElementById('metricAcc').innerText = '--';
+      document.getElementById('metricLatency').innerText = '--';
+      document.getElementById('metricRmse').innerText = '--';
+      document.getElementById('metricPoints').innerText = '--';
+      document.getElementById('mlCompare').innerText = 'Classifier-only vs HMM: run an example';
       if (!tripId) return;
 
       try {
-        const res = await fetch(`${getBaseUrl()}/api/trips/${tripId}`);
-        if (!res.ok) return;
+        const isReal = /^\d{8}$/.test(tripId);
+        const sourcePath = isReal ? '/api/real/trips/' : '/api/trips/';
+        const res = await fetch(`${getBaseUrl()}${sourcePath}${encodeURIComponent(tripId)}`);
+        if (!res.ok) throw new Error(`Trip loading HTTP ${res.status}`);
         currentTripData = await res.json();
         document.getElementById('tripDesc').innerText = currentTripData.description || "Loaded trajectory";
       } catch (e) {
@@ -452,67 +492,78 @@
     }
 
     async function runMatching() {
-      if (!currentTripData || !currentTripData.points) {
-        alert("Please choose a test trip first!");
+      if (!currentTripData || (!currentTripData.points && !currentTripData.is_real)) {
+        alert("Please choose a trip first!");
         return;
       }
-
       const btn = document.getElementById('btnMatch');
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Snapping with Viterbi...';
-
-      const sigmaZ = parseFloat(document.getElementById('sigmaZ').value);
-      const beta = parseFloat(document.getElementById('betaVal').value);
-
-      const payload = {
-        trip_id: currentTripData.trip_id,
-        points: currentTripData.points,
-        sigma_z: sigmaZ,
-        beta: beta
-      };
-
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Matching trajectory...';
+      const isReal = !!currentTripData.is_real;
+      const payload = isReal
+        ? { sigma_z: Number(document.getElementById('sigmaZ').value),
+            beta: Number(document.getElementById('betaVal').value),
+            // 120 CONSECUTIVE GPS fixes for responsive demo preview.
+            // Set max_points: 0 in API for a complete trip when authorised.
+            window_start: 0, max_points: 120 }
+        : { trip_id: currentTripData.trip_id,
+            points: currentTripData.points,
+            sigma_z: Number(document.getElementById('sigmaZ').value),
+            beta: Number(document.getElementById('betaVal').value) };
       try {
-        // 1. Fetch Prediction Match
-        const matchRes = await fetch(`${getBaseUrl()}/api/match`, {
+        // Single API run returns both predictions and the exact same Folium map.
+        const endpoint = isReal
+            ? `/api/real/match/${encodeURIComponent(currentTripData.trip_id)}`
+            : '/api/match-with-map';
+        const response = await fetch(`${getBaseUrl()}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
-        currentMatchResults = await matchRes.json();
-
-        // 2. Update Metrics
-        document.getElementById('metricAcc').innerText = currentMatchResults.accuracy !== null ? (currentMatchResults.accuracy * 100).toFixed(1) + "%" : "N/A";
-        document.getElementById('metricLatency').innerText = currentMatchResults.latency_ms + " ms";
-        document.getElementById('metricRmse').innerText = currentMatchResults.avg_snapping_distance_m + " m";
-        document.getElementById('metricPoints').innerText = currentMatchResults.num_points;
-
-        // Render edge tags
+        if (!response.ok) {
+          let reason = '';
+          try { reason = (await response.json()).detail || ''; }
+          catch (_) { reason = await response.text(); }
+          throw new Error(`HTTP ${response.status}: ${reason}`);
+        }
+        const data = await response.json();
+        currentMatchResults = data.prediction;
+        const r = currentMatchResults;
+        const accuracy = r.accuracy;
+        document.getElementById('metricAcc').innerText =
+          typeof accuracy === 'number' ? (accuracy*100).toFixed(1) + '%' : 'N/A';
+        document.getElementById('metricLatency').innerText =
+          Number(r.latency_ms).toFixed(1) + ' ms';
+        document.getElementById('metricRmse').innerText =
+          Number(r.avg_snapping_distance_m).toFixed(2) + ' m';
+        document.getElementById('metricPoints').innerText =
+          r.preview_only ? `${r.num_points} / ${r.total_trip_points} (preview)` : r.num_points;
+        document.getElementById('modeSummary').innerText =
+          `Engine: ${r.model_name} (${r.scoring_engine})`;
+        document.getElementById('modeSummary').style.color =
+          r.scoring_engine === 'GEOMETRIC_BASELINE' ? '#b45309' : '#2e7d32';
+        const mlOnly = r.ml_only_accuracy;
+        document.getElementById('mlCompare').innerText = isReal
+          ? `Real GPS trip: ${r.num_points} consecutive observations. Ground-truth route NOT read; accuracy unavailable. Blue = selected-point sequence, green = predicted arc geometry.`
+          : (typeof mlOnly === 'number' && typeof accuracy === 'number'
+           ? `ML-only Top-1: ${(mlOnly*100).toFixed(1)}% | HMM/Viterbi: ${(accuracy*100).toFixed(1)}% (synthetic point labels)`
+           : 'ML-only / HMM comparison unavailable without point reference labels');
         const seqContainer = document.getElementById('edgeSeqContainer');
         seqContainer.innerHTML = '';
-        currentMatchResults.matched_edges_sequence.forEach(edge => {
+        (r.matched_edges_sequence || []).forEach(edge => {
           const tag = document.createElement('span');
           tag.className = 'edge-tag';
-          tag.innerText = edge;
+          tag.textContent = edge;
           seqContainer.appendChild(tag);
         });
-
         document.getElementById('btnDownload').style.display = 'block';
-
-        // 3. Fetch and Render Folium Map
-        const mapRes = await fetch(`${getBaseUrl()}/api/render-map`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const mapHtml = await mapRes.text();
-
-        document.getElementById('placeholder').style.display = 'none';
         const iframe = document.getElementById('mapIframe');
         iframe.style.display = 'block';
-        iframe.srcdoc = mapHtml;
-
+        document.getElementById('placeholder').style.display = 'none';
+        iframe.srcdoc = data.map_html;
       } catch (err) {
-        alert("Error running map matching: " + err);
+        console.error(err);
+        alert('Map matching failed: ' + err.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Run Map Matching (Viterbi)';
