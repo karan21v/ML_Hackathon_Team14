@@ -1,12 +1,26 @@
-.venv/
+
+# Python
 __pycache__/
-.pytest_cache/
+*.py[cod]
 *.pyc
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables
+.env
+*.env
+
+# Model artifacts
 *.joblib
 *.pkl
+
+# Dataset files
 Student folder/
 Student folder.zip
-*.env
-.env
+
+# Generated results
 results/trajectory_map.html
 results/cleaned_selected_trip.csv
