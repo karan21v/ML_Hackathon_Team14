@@ -1,0 +1,6 @@
+{
+  "name": "random_forest",
+  "selected_by": "group CV candidate macro F1",
+  "cv_macro_f1": 0.8443542228430405,
+  "experiment_id": "1e974232f5900ddf"
+}
