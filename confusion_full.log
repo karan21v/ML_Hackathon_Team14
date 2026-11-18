@@ -1,0 +1,46 @@
+[SAVED] results/presentation_graphs/01_cv_macro_f1.png
+[SAVED] results/presentation_graphs/02_observation_top1_accuracy.png
+[SAVED] results/presentation_graphs/03_cv_log_loss.png
+[SAVED] results/presentation_graphs/04_bayesian_trial_history.png
+[SAVED] results/presentation_graphs/05_untuned_vs_tuned.png
+[MISSING] Feature null/nonfinite counts: {'heading_difference': 90580, 'speed_mps': 295, 'time_gap_s': 295}
+[SCHEMA] Validated full CSV: 677,510 rows, 135,502 observations, 80 trips
+[SCHEMA] Feature order: ['distance_m', 'heading_difference', 'speed_mps', 'time_gap_s', 'segment_length_m', 'candidate_rank', 'projection_fraction', 'heading_reliable']
+[SAMPLE] Training with 677,510 candidate rows from 80 trips
+[LABELS] Positive=135,502; Negative=542,008
+[EVALUATING] logistic_regression: 3 grouped folds on 677,510 rows
+    fold 1/3 complete
+    fold 2/3 complete
+    fold 3/3 complete
+[SAVED] results/presentation_graphs/confusion_logistic_regression.png
+[EVALUATING] decision_tree: 3 grouped folds on 677,510 rows
+    fold 1/3 complete
+    fold 2/3 complete
+    fold 3/3 complete
+[SAVED] results/presentation_graphs/confusion_decision_tree.png
+[EVALUATING] random_forest: 3 grouped folds on 677,510 rows
+    fold 1/3 complete
+    fold 2/3 complete
+    fold 3/3 complete
+[SAVED] results/presentation_graphs/confusion_random_forest.png
+[EVALUATING] mlp: 3 grouped folds on 677,510 rows
+    fold 1/3 complete
+    fold 2/3 complete
+    fold 3/3 complete
+[SAVED] results/presentation_graphs/confusion_mlp.png
+[EVALUATING] hist_gradient_boosting: 3 grouped folds on 677,510 rows
+    fold 1/3 complete
+    fold 2/3 complete
+    fold 3/3 complete
+[SAVED] results/presentation_graphs/confusion_hist_gradient_boosting.png
+[SAVED] results/presentation_graphs/oof_model_metrics.csv
+[SAVED] results/presentation_graphs/06_roc_comparison.png
+[SAVED] results/presentation_graphs/07_pr_comparison.png
+
+OUT-OF-FOLD METRICS:
+                  model  oof_macro_f1  oof_top1_proxy     tn    fp    fn     tp  roc_auc  average_precision
+         random_forest      0.885776        0.822541 506588 35420 16625 118877 0.970421           0.893353
+hist_gradient_boosting      0.882174        0.819693 515314 26694 24680 110822 0.971628           0.895359
+                   mlp      0.881472        0.820372 516498 25510 25838 109664 0.971504           0.894360
+         decision_tree      0.861587        0.812984 485041 56967 10349 125153 0.953508           0.858102
+   logistic_regression      0.836850        0.805176 472688 69320 11875 123627 0.953509           0.829133

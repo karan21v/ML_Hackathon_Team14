@@ -1,0 +1,90 @@
+[MISSING] Feature null/nonfinite counts: {'heading_difference': 90580, 'speed_mps': 295, 'time_gap_s': 295}
+[SCHEMA] Validated full CSV: 677,510 rows, 135,502 observations, 80 trips
+[SCHEMA] Feature order: ['distance_m', 'heading_difference', 'speed_mps', 'time_gap_s', 'segment_length_m', 'candidate_rank', 'projection_fraction', 'heading_reliable']
+[SAMPLE] Training with 677,510 candidate rows from 80 trips
+[LABELS] Positive=135,502; Negative=542,008
+[I 2026-11-18 12:28:06,307] A new study created in RDB with name: pathsnap_handoff_random_forest_9d8a825b40d7ae61
+[OPTUNA] model=random_forest, existing=0, new trials=20, folds=3
+[TRIAL 0 FOLD 1] macroF1=0.8653
+[TRIAL 0 FOLD 2] macroF1=0.8734
+[TRIAL 0 FOLD 3] macroF1=0.9112
+[I 2026-11-18 12:29:04,530] Trial 0 finished with value: 0.8832876536235013 and parameters: {'n_estimators': 47, 'max_depth': 25, 'min_samples_leaf': 6, 'max_features': 0.7457753312693086}. Best is trial 0 with value: 0.8832876536235013.
+[TRIAL 1 FOLD 1] macroF1=0.8658
+[TRIAL 1 FOLD 2] macroF1=0.8745
+[TRIAL 1 FOLD 3] macroF1=0.9122
+[I 2026-11-18 12:30:02,227] Trial 1 finished with value: 0.8841494666670314 and parameters: {'n_estimators': 56, 'max_depth': 15, 'min_samples_leaf': 9, 'max_features': 0.7471471963350618}. Best is trial 1 with value: 0.8841494666670314.
+[TRIAL 2 FOLD 1] macroF1=0.8661
+[TRIAL 2 FOLD 2] macroF1=0.8746
+[TRIAL 2 FOLD 3] macroF1=0.9126
+[I 2026-11-18 12:31:09,058] Trial 2 finished with value: 0.8844115255755088 and parameters: {'n_estimators': 69, 'max_depth': 21, 'min_samples_leaf': 10, 'max_features': 0.7176368819561212}. Best is trial 2 with value: 0.8844115255755088.
+[TRIAL 3 FOLD 1] macroF1=0.8658
+[TRIAL 3 FOLD 2] macroF1=0.8736
+[TRIAL 3 FOLD 3] macroF1=0.9119
+[I 2026-11-18 12:34:38,756] Trial 3 finished with value: 0.8837421008379774 and parameters: {'n_estimators': 59, 'max_depth': 21, 'min_samples_leaf': 12, 'max_features': 0.5166400237621148}. Best is trial 2 with value: 0.8844115255755088.
+[TRIAL 4 FOLD 1] macroF1=0.8662
+[TRIAL 4 FOLD 2] macroF1=0.8746
+[TRIAL 4 FOLD 3] macroF1=0.9124
+[I 2026-11-18 12:36:12,344] Trial 4 finished with value: 0.8843791300145899 and parameters: {'n_estimators': 116, 'max_depth': 16, 'min_samples_leaf': 8, 'max_features': 0.5812109353973597}. Best is trial 2 with value: 0.8844115255755088.
+[TRIAL 5 FOLD 1] macroF1=0.8650
+[TRIAL 5 FOLD 2] macroF1=0.8736
+[TRIAL 5 FOLD 3] macroF1=0.9093
+[I 2026-11-18 12:37:15,500] Trial 5 finished with value: 0.8826607140155908 and parameters: {'n_estimators': 80, 'max_depth': 11, 'min_samples_leaf': 9, 'max_features': 0.6705686335282083}. Best is trial 2 with value: 0.8844115255755088.
+[TRIAL 6 FOLD 1] macroF1=0.8569
+[TRIAL 6 FOLD 2] macroF1=0.8684
+[TRIAL 6 FOLD 3] macroF1=0.9073
+[I 2026-11-18 12:38:52,838] Trial 6 finished with value: 0.8775228630846484 and parameters: {'n_estimators': 123, 'max_depth': 7, 'min_samples_leaf': 2, 'max_features': 0.8720062000417623}. Best is trial 2 with value: 0.8844115255755088.
+[TRIAL 7 FOLD 1] macroF1=0.8659
+[TRIAL 7 FOLD 2] macroF1=0.8744
+[TRIAL 7 FOLD 3] macroF1=0.9114
+[I 2026-11-18 12:41:05,864] Trial 7 finished with value: 0.8838836809475817 and parameters: {'n_estimators': 87, 'max_depth': 23, 'min_samples_leaf': 3, 'max_features': 0.9515489322019484}. Best is trial 2 with value: 0.8844115255755088.
+[TRIAL 8 FOLD 1] macroF1=0.8665
+[TRIAL 8 FOLD 2] macroF1=0.8762
+[TRIAL 8 FOLD 3] macroF1=0.9118
+[I 2026-11-18 12:43:26,862] Trial 8 finished with value: 0.884802710771828 and parameters: {'n_estimators': 107, 'max_depth': 19, 'min_samples_leaf': 1, 'max_features': 0.9785472239841364}. Best is trial 8 with value: 0.884802710771828.
+[TRIAL 9 FOLD 1] macroF1=0.8574
+[TRIAL 9 FOLD 2] macroF1=0.8705
+[TRIAL 9 FOLD 3] macroF1=0.9080
+[I 2026-11-18 12:43:54,706] Trial 9 finished with value: 0.8786363405723483 and parameters: {'n_estimators': 52, 'max_depth': 8, 'min_samples_leaf': 1, 'max_features': 0.49573915260313695}. Best is trial 8 with value: 0.884802710771828.
+[TRIAL 10 FOLD 1] macroF1=0.8665
+[TRIAL 10 FOLD 2] macroF1=0.8749
+[TRIAL 10 FOLD 3] macroF1=0.9121
+[I 2026-11-18 12:46:36,776] Trial 10 finished with value: 0.8845264691797534 and parameters: {'n_estimators': 133, 'max_depth': 16, 'min_samples_leaf': 8, 'max_features': 0.9413588004039618}. Best is trial 8 with value: 0.884802710771828.
+[TRIAL 11 FOLD 1] macroF1=0.8664
+[TRIAL 11 FOLD 2] macroF1=0.8748
+[TRIAL 11 FOLD 3] macroF1=0.9118
+[I 2026-11-18 12:49:05,838] Trial 11 finished with value: 0.8843194157732531 and parameters: {'n_estimators': 114, 'max_depth': 16, 'min_samples_leaf': 8, 'max_features': 0.963781752911074}. Best is trial 8 with value: 0.884802710771828.
+[TRIAL 12 FOLD 1] macroF1=0.8667
+[TRIAL 12 FOLD 2] macroF1=0.8761
+[TRIAL 12 FOLD 3] macroF1=0.9120
+[I 2026-11-18 12:52:11,305] Trial 12 finished with value: 0.8849311699164321 and parameters: {'n_estimators': 136, 'max_depth': 17, 'min_samples_leaf': 1, 'max_features': 0.970618106804215}. Best is trial 12 with value: 0.8849311699164321.
+[TRIAL 13 FOLD 1] macroF1=0.8669
+[TRIAL 13 FOLD 2] macroF1=0.8759
+[TRIAL 13 FOLD 3] macroF1=0.9123
+[I 2026-11-18 12:54:20,419] Trial 13 finished with value: 0.8850624670198881 and parameters: {'n_estimators': 116, 'max_depth': 17, 'min_samples_leaf': 3, 'max_features': 0.8673861156282748}. Best is trial 13 with value: 0.8850624670198881.
+[TRIAL 14 FOLD 1] macroF1=0.8669
+[TRIAL 14 FOLD 2] macroF1=0.8755
+[TRIAL 14 FOLD 3] macroF1=0.9118
+[I 2026-11-18 12:56:50,647] Trial 14 finished with value: 0.8847473071091567 and parameters: {'n_estimators': 126, 'max_depth': 15, 'min_samples_leaf': 4, 'max_features': 0.9594197024952474}. Best is trial 13 with value: 0.8850624670198881.
+[TRIAL 15 FOLD 1] macroF1=0.8670
+[TRIAL 15 FOLD 2] macroF1=0.8756
+[TRIAL 15 FOLD 3] macroF1=0.9122
+[I 2026-11-18 12:59:20,105] Trial 15 finished with value: 0.8849141268639332 and parameters: {'n_estimators': 125, 'max_depth': 20, 'min_samples_leaf': 3, 'max_features': 0.7875084303883506}. Best is trial 13 with value: 0.8850624670198881.
+[TRIAL 16 FOLD 1] macroF1=0.8670
+[TRIAL 16 FOLD 2] macroF1=0.8756
+[TRIAL 16 FOLD 3] macroF1=0.9119
+[I 2026-11-18 13:01:31,397] Trial 16 finished with value: 0.8848374039151733 and parameters: {'n_estimators': 112, 'max_depth': 17, 'min_samples_leaf': 1, 'max_features': 0.854628613128882}. Best is trial 13 with value: 0.8850624670198881.
+[TRIAL 17 FOLD 1] macroF1=0.8650
+[TRIAL 17 FOLD 2] macroF1=0.8725
+[TRIAL 17 FOLD 3] macroF1=0.9086
+[I 2026-11-18 13:03:29,380] Trial 17 finished with value: 0.88202391238694 and parameters: {'n_estimators': 113, 'max_depth': 11, 'min_samples_leaf': 4, 'max_features': 0.9635806134610556}. Best is trial 13 with value: 0.8850624670198881.
+[TRIAL 18 FOLD 1] macroF1=0.8653
+[TRIAL 18 FOLD 2] macroF1=0.8715
+[TRIAL 18 FOLD 3] macroF1=0.9082
+[I 2026-11-18 13:05:51,044] Trial 18 finished with value: 0.8816714557859676 and parameters: {'n_estimators': 134, 'max_depth': 11, 'min_samples_leaf': 1, 'max_features': 0.9148476248670007}. Best is trial 13 with value: 0.8850624670198881.
+[TRIAL 19 FOLD 1] macroF1=0.8653
+[TRIAL 19 FOLD 2] macroF1=0.8745
+[TRIAL 19 FOLD 3] macroF1=0.9111
+[I 2026-11-18 13:08:34,987] Trial 19 finished with value: 0.8836182300625142 and parameters: {'n_estimators': 138, 'max_depth': 24, 'min_samples_leaf': 1, 'max_features': 0.8716461005277951}. Best is trial 13 with value: 0.8850624670198881.
+[SAVED] artifacts/handoff/tuned_model.joblib
+[DONE] Saved results/handoff/optuna_trials.csv and results/handoff/tuning_summary.json
+Best tuned CV Macro F1: 0.8851
