@@ -56,16 +56,24 @@ if os.path.exists(ROAD_EDGES_PATH):
 else:
     edges_df = pd.DataFrame()
 
-# Check for teammate trained model weights
-teammate_model_path = os.path.join(BASE_DIR, "src", "models", "teammate_model.joblib")
-if not os.path.exists(teammate_model_path):
-    teammate_model_path = os.path.join(BASE_DIR, "src", "models", "model.joblib")
+# Check for teammate trained model weights in standard candidate locations
+candidate_model_paths = [
+    os.path.join(BASE_DIR, "src", "models", "teammate_model.joblib"),
+    os.path.join(BASE_DIR, "artifacts", "handoff", "best_model.joblib"),
+    os.path.join(BASE_DIR, "artifacts", "best_model.joblib"),
+    os.path.join(BASE_DIR, "src", "models", "model.joblib"),
+]
+teammate_model_path = None
+for p in candidate_model_paths:
+    if os.path.exists(p):
+        teammate_model_path = p
+        break
 
 pipeline = MapMatchingPipeline(
     edges_df=edges_df,
     sigma_z=10.0,
     beta=12.0,
-    ml_model_path=teammate_model_path if os.path.exists(teammate_model_path) else None
+    ml_model_path=teammate_model_path
 )
 visualizer = TrajectoryMapVisualizer(edges_df=edges_df)
 
