@@ -57,17 +57,36 @@ else:
     edges_df = pd.DataFrame()
 
 # Check for teammate trained model weights in standard candidate locations
-candidate_model_paths = [
-    os.path.join(BASE_DIR, "src", "models", "teammate_model.joblib"),
-    os.path.join(BASE_DIR, "artifacts", "handoff", "best_model.joblib"),
-    os.path.join(BASE_DIR, "artifacts", "best_model.joblib"),
-    os.path.join(BASE_DIR, "src", "models", "model.joblib"),
-]
-teammate_model_path = None
-for p in candidate_model_paths:
-    if os.path.exists(p):
-        teammate_model_path = p
-        break
+env_model_path = os.environ.get("PATHSNAP_MODEL_PATH")
+if env_model_path and os.path.exists(env_model_path):
+    teammate_model_path = env_model_path
+else:
+    candidate_model_paths = [
+        os.path.join(BASE_DIR, "artifacts", "handoff", "best_model.joblib"),
+        os.path.join(BASE_DIR, "src", "models", "teammate_model.joblib"),
+        os.path.join(BASE_DIR, "artifacts", "best_model.joblib"),
+        os.path.join(BASE_DIR, "src", "models", "model.joblib"),
+    ]
+    teammate_model_path = None
+    for p in candidate_model_paths:
+        if os.path.exists(p):
+            teammate_model_path = p
+            break
+
+if os.environ.get("PATHSNAP_REQUIRE_ML") == "1" and not teammate_model_path:
+    raise RuntimeError("PATHSNAP_REQUIRE_ML is set, but no trained model file was found!")
+
+# Dataset reader for Student folder.zip if provided via environment
+TRIPS_ZIP = os.environ.get("PATHSNAP_TRIPS_ZIP")
+TRIP_PARTITION = os.environ.get("PATHSNAP_TRIP_PARTITION", "student_test")
+dataset_reader = None
+if TRIPS_ZIP and os.path.exists(TRIPS_ZIP):
+    try:
+        from data_processing.load_data import PathSnapDataset
+        dataset_reader = PathSnapDataset(TRIPS_ZIP)
+        print(f"[API] Loaded PathSnapDataset from: {TRIPS_ZIP} (partition={TRIP_PARTITION})")
+    except Exception as e:
+        print("[API Warning] Could not load PathSnapDataset from ZIP:", e)
 
 pipeline = MapMatchingPipeline(
     edges_df=edges_df,
@@ -128,6 +147,31 @@ def network_status():
 def list_trips():
     """Lists all available test trips for the evaluator to pick from."""
     summaries = []
+    
+    # 1. Trips from Student folder.zip if configured
+    if dataset_reader is not None:
+        try:
+            for tid in dataset_reader.trips(TRIP_PARTITION):
+                try:
+                    trk = dataset_reader.read(TRIP_PARTITION, tid, "track")
+                    route = pd.DataFrame()
+                    try:
+                        route = dataset_reader.read(TRIP_PARTITION, tid, "route")
+                    except Exception:
+                        pass
+                    summaries.append({
+                        "trip_id": f"{TRIP_PARTITION}_{tid}",
+                        "description": f"Dataset {TRIP_PARTITION} trip {tid}",
+                        "num_points": len(trk),
+                        "noise_sigma_m": 12.0,
+                        "ground_truth_edges": [str(x) for x in route["arc_id"].tolist()] if "arc_id" in route else []
+                    })
+                except Exception:
+                    continue
+        except Exception as e:
+            print("[API Warning] Error listing ZIP dataset trips:", e)
+
+    # 2. Pre-packaged evaluation corridor trips
     if os.path.exists(RAW_TRIPS_DIR):
         for fname in sorted(os.listdir(RAW_TRIPS_DIR)):
             if fname.startswith("TRIP_") and fname.endswith(".json"):
@@ -149,6 +193,31 @@ def list_trips():
 @app.get("/api/trips/{trip_id}", tags=["Trips"])
 def get_trip(trip_id: str):
     """Retrieve full details and raw GPS points for a specific trip."""
+    # Check dataset reader for student_test / train trips
+    if dataset_reader is not None and ("student_test_" in trip_id or "train_" in trip_id):
+        part = "student_test" if "student_test_" in trip_id else "train"
+        real_tid = trip_id.replace(f"{part}_", "")
+        try:
+            track = dataset_reader.read(part, real_tid, "track")
+            pts = []
+            for idx, row in track.iterrows():
+                pts.append({
+                    "point_index": int(idx),
+                    "timestamp": float(row["timestamp"]) if "timestamp" in row else float(idx),
+                    "raw_latitude": float(row["latitude"]),
+                    "raw_longitude": float(row["longitude"]),
+                    "speed_mps": 10.0,
+                    "heading_deg": 0.0
+                })
+            return {
+                "trip_id": trip_id,
+                "description": f"Dataset {part} trip {real_tid}",
+                "num_points": len(pts),
+                "points": pts
+            }
+        except Exception as e:
+            raise HTTPException(status_code=404, detail=f"Could not read trip {trip_id} from dataset ZIP: {e}")
+
     fpath = os.path.join(RAW_TRIPS_DIR, f"{trip_id}.json")
     if not os.path.exists(fpath):
         raise HTTPException(status_code=404, detail=f"Trip {trip_id} not found")
