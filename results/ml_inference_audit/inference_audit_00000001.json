@@ -1,0 +1,39 @@
+{
+  "purpose": "Unseen-input schema/probability contract smoke test; not independent accuracy evidence",
+  "model": "random_forest",
+  "experiment_id": "9d8a825b40d7ae61",
+  "feature_order": [
+    "distance_m",
+    "heading_difference",
+    "speed_mps",
+    "time_gap_s",
+    "segment_length_m",
+    "candidate_rank",
+    "projection_fraction",
+    "heading_reliable"
+  ],
+  "trip_id": "00000001",
+  "candidate_rows": 5270,
+  "gps_observations": 1054,
+  "candidates_per_observation": {
+    "min": 5,
+    "median": 5.0,
+    "max": 5
+  },
+  "missing_features": {
+    "distance_m": 0,
+    "heading_difference": 45,
+    "speed_mps": 5,
+    "time_gap_s": 5,
+    "segment_length_m": 0,
+    "candidate_rank": 0,
+    "projection_fraction": 0,
+    "heading_reliable": 0
+  },
+  "positive_class_score_range": [
+    0.0,
+    1.0
+  ],
+  "inference_seconds": 0.0571,
+  "warning": "Scores are independent candidate class probabilities; not normalized to sum to 1 within observations. HMM must handle transition scores itself."
+}

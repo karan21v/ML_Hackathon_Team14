@@ -1,0 +1,13 @@
+{
+  "model": "random_forest",
+  "folds": 3,
+  "candidate_rows": 677510,
+  "trips": 80,
+  "observations": 135502,
+  "mean_trip_top1_proxy_unweighted": 0.8477943140716073,
+  "median_trip_top1_proxy": 0.8741605035111311,
+  "p10_trip_top1_proxy": 0.6946599641045165,
+  "min_trip_top1_proxy": 0.44627192982456143,
+  "max_trip_top1_proxy": 0.9851049424509141,
+  "warning": "Out-of-fold TRAINING-trips with approximate reference-alignment labels, not the final reserved evaluator set. Do not interpret as HMM route accuracy."
+}
