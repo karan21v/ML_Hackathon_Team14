@@ -23,22 +23,37 @@ import pandas as pd
 
 
 def get_importances(bundle: dict) -> pd.DataFrame:
+    """Return importance for *transformed* model inputs, including missing flags.
+
+    Training uses SimpleImputer(add_indicator=True). The raw feature count is 8,
+    but the fitted estimator may see extra binary missingness indicators. Using
+    get_feature_names_out prevents incorrectly pairing 11 importances with 8 names.
+    """
     features = bundle.get('feature_names')
     if not isinstance(features, (list, tuple)) or not features:
         raise ValueError('Model bundle does not specify feature_names')
     model = bundle.get('model')
     if model is None:
         raise ValueError('Model bundle lacks fitted model')
-    # Support sklearn Pipeline with SimpleImputer as well as fitted bare RF.
-    estimator = model.steps[-1][1] if hasattr(model, 'steps') else model
+    if hasattr(model, 'steps'):
+        estimator = model.steps[-1][1]
+        preprocessors = model.steps[:-1]
+        names = np.asarray(features, dtype=str)
+        for _, transformer in preprocessors:
+            if not hasattr(transformer, 'get_feature_names_out'):
+                raise TypeError('Preprocessing step lacks feature-name mapping; cannot label importances safely')
+            names = np.asarray(transformer.get_feature_names_out(names), dtype=str)
+    else:
+        estimator = model
+        names = np.asarray(features, dtype=str)
     if not hasattr(estimator, 'feature_importances_'):
         raise TypeError('Selected model does not support tree feature importances')
     importance = np.asarray(estimator.feature_importances_, dtype=float)
-    if len(importance) != len(features) or not np.isfinite(importance).all():
-        raise ValueError('Unexpected feature-importance dimensions/values')
+    if importance.ndim != 1 or len(importance) != len(names) or not np.isfinite(importance).all():
+        raise ValueError(f'Unexpected importance dimensions: model={importance.shape}, transformed names={len(names)}')
     if np.any(importance < 0):
         raise ValueError('Negative feature importance')
-    return pd.DataFrame({'feature': features, 'importance': importance}).sort_values('importance', ascending=False)
+    return pd.DataFrame({'feature': names, 'importance': importance}).sort_values('importance', ascending=False)
 
 
 def analyze_candidate_scores(scored: pd.DataFrame, margin_threshold: float, top_score_threshold: float):

@@ -1,0 +1,12 @@
+feature,importance
+candidate_rank,0.3379540835258235
+distance_m,0.2122527927908873
+heading_difference,0.20520589198535408
+projection_fraction,0.1199916814108497
+segment_length_m,0.0682344894393863
+speed_mps,0.05220940384958487
+time_gap_s,0.001710288443479943
+heading_reliable,0.00127926957703459
+missingindicator_heading_difference,0.0011289228735137447
+missingindicator_time_gap_s,1.717357042526075e-05
+missingindicator_speed_mps,1.6002533660774215e-05

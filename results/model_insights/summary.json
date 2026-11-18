@@ -1,0 +1,25 @@
+{
+  "model": "random_forest",
+  "trip_count": 1,
+  "gps_observations": 1054,
+  "candidate_rows": 5270,
+  "ambiguous_observations": 26,
+  "ambiguous_fraction": 0.024667931688804556,
+  "margin_threshold": 0.1,
+  "top_score_threshold": 0.6,
+  "top_features": [
+    {
+      "feature": "candidate_rank",
+      "importance": 0.3379540835258235
+    },
+    {
+      "feature": "distance_m",
+      "importance": 0.2122527927908873
+    },
+    {
+      "feature": "heading_difference",
+      "importance": 0.20520589198535408
+    }
+  ],
+  "note": "Descriptive analysis of model scores for input trip(s), not unseen-trip accuracy. Thresholds are heuristic; candidate scores are not calibrated across candidates; HMM still needs all candidates."
+}

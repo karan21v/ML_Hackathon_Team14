@@ -35,3 +35,7 @@ python scripts/pathsnap_model_insights.py \
 - Class probabilities from the underlying binary classifier are **not automatically calibrated** as probabilities that a given road is correct among the candidates. The top-two margin is a useful signal to inspect, not a validated uncertainty model.
 - For a genuine full-system assessment, the team must separately measure held-out student-test outcomes and HMM/Viterbi route quality.
 - No reserved evaluator dataset should be used for training or threshold tuning.
+
+### Missing-value indicators (fix)
+
+The training pipeline uses `SimpleImputer(add_indicator=True)` and has eight raw features, but can feed more than eight transformed columns to Random Forest. The explainability script retrieves actual transformed feature names from the fitted pipeline, including indicators such as `missingindicator_heading_difference`. Importances reflect the fitted model's inputs; these impurity-based importances are not causal explanations.
